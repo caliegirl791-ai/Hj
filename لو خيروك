@@ -1,0 +1,167 @@
+<!doctype html>
+
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>لعبة لو خيروك — جاهزة</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#061323"/>
+  <style>
+    :root{--bg:#061323;--card:#0b2540;--accent:#00d4a6;--muted:#9fb1c2}
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,'Segoe UI',Tahoma,Arial,'Helvetica Neue',sans-serif}
+    body{margin:0;min-height:100vh;background:linear-gradient(180deg,var(--bg),#04202a);color:white;display:flex;align-items:center;justify-content:center;padding:20px}
+    .app{width:100%;max-width:860px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{margin:0;font-size:20px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));padding:20px;border-radius:12px;box-shadow:0 6px 30px rgba(2,8,23,0.6)}
+    .question{font-size:22px;margin-bottom:12px}
+    .choices{display:flex;gap:12px;flex-wrap:wrap}
+    .choice{flex:1;padding:14px;border-radius:10px;border:2px solid rgba(255,255,255,0.06);cursor:pointer;text-align:center}
+    .choice.small{flex:0 0 48%}
+    .choice:hover{transform:translateY(-4px)}
+    .choice.active{border-color:var(--accent);box-shadow:0 6px 20px rgba(0,212,166,0.12)}
+    .meta{display:flex;justify-content:space-between;align-items:center;margin-top:14px;color:var(--muted);font-size:14px}
+    .controls{display:flex;gap:10px}
+    button{background:var(--accent);border:none;color:#022;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);padding:8px 12px}
+    .footer{margin-top:12px;color:var(--muted);font-size:13px}
+    .settings{display:flex;gap:8px;align-items:center}
+    select,input[type=checkbox]{padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+    @media(max-width:520px){.choice.small{flex-basis:100%}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>لعبة «لو خيروك» — بالعربية</h1>
+      <div class="settings card" style="padding:10px;display:flex;gap:8px;align-items:center">
+        <label>نوع الأسئلة:</label>
+        <select id="categorySelect">
+          <option value="all">الكل</option>
+          <option value="fun">مجنون ومضحك</option>
+          <option value="deep">صعبة وقرار</option>
+          <option value="rom">رومانسية</option>
+          <option value="adv">مغامرات</option>
+        </select>
+        <label style="margin-inline-start:6px"><input id="shuffleToggle" type="checkbox" checked /> خلط الأسئلة</label>
+      </div>
+    </header><div class="card">
+  <div id="container">
+    <div class="question" id="questionText">اضغط "السؤال التالي" لبدء اللعب</div>
+
+    <div class="choices" id="choices">
+      <div class="choice small" data-choice="A" id="choiceA"><strong>A</strong> — </div>
+      <div class="choice small" data-choice="B" id="choiceB"><strong>B</strong> — </div>
+    </div>
+
+    <div class="meta">
+      <div>السؤال <span id="currentIndex">0</span> / <span id="totalCount">0</span></div>
+      <div class="controls">
+        <button id="nextBtn">السؤال التالي</button>
+        <button class="ghost" id="resetBtn">إعادة</button>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div style="margin-top:10px">نقطة لكل إجابة. يمكنك الضغط على خيار A أو B ثم الضغط "السؤال التالي".
+      </div>
+    </div>
+  </div>
+</div>
+
+  </div>  <script>
+    const questions = [
+      {cat:'fun',q:'تعيش سنة كاملة بدون هاتف محمول؟',A:'نعم — بدون هاتف',B:'لا — بدون الإنترنت'},
+      {cat:'deep',q:'تكسب مليون لكن لا ترى عائلتك لسنة كاملة.',A:'أقبل المال',B:'أرفض من أجل العائلة'},
+      {cat:'rom',q:'تحب شخص لكنه لا يحبك، أم شخص يحبك وأنت لا تحبه؟',A:'أحب وغير متبادل',B:'محب لكن غير محبوب'},
+      {cat:'adv',q:'تقضي أسبوع في الغابة بأدوات بقاء أم أسبوع في فندق خمس نجوم بلا خروج؟',A:'الغابة',B:'الفندق'},
+      {cat:'fun',q:'تستطيع الطيران مترين أم تختفي 5 دقائق؟',A:'أختار الطيران',B:'أختفي 5 دقائق'},
+      {cat:'deep',q:'تفقد ذاكرة 10 سنوات أم تتذكر كل شيء ولا تستطيع نسيان ألم عاطفي؟',A:'أفقد 10 سنوات',B:'أتذكر كل شيء'},
+      {cat:'rom',q:'تقبل حب غير متبادل أم تحب من لا تحبه?',A:'أحب غير متبادل',B:'أُحب من لا أحبه'},
+      {cat:'adv',q:'تسافر كل سنة لبلد جديد أم تبقى في بلد واحد بشواطئ دافئة؟',A:'أسافر كل سنة',B:'أبقى على الشاطئ'},
+      {cat:'fun',q:'تصبح مشهوراً وتفقد الخصوصية أم مجهول وتعيش هادئاً؟',A:'شهرة',B:'هدوء'},
+      {cat:'deep',q:'تمتلك القدرة قراءة الأفكار ساعة يومياً أم منع الآخرين من قراءتها؟',A:'قراءة الأفكار',B:'منع قراءتها'},
+      {cat:'adv',q:'ستعيش 6 أشهر في الفضاء أم 6 أشهر تحت الماء؟',A:'في الفضاء',B:'تحت الماء'},
+      {cat:'fun',q:'تأكل أطعمة لذيذة بلا قيمة غذائية أم طعام صحي بطعم سيء؟',A:'لذيذ لكن غير صحي',B:'صحي لكن سيء الطعم'},
+      {cat:'deep',q:'تعيش للأبد وتخسر من تحب أم تعيش قليلاً بسعادة؟',A:'خلود وحزن',B:'قصر وسعادة'},
+      {cat:'rom',q:'تخفي مشاعرك لشخص تحبه أم تعبر فيخسر الصداقة؟',A:'أخفي',B:'أعبر'},
+      {cat:'fun',q:'تتحدث كل اللغات لكن لا تكتب أم تكتب كل اللغات ولا تستطيع النطق؟',A:'أتكلم كل اللغات',B:'أكتب كل اللغات'},
+      {cat:'deep',q:'تتحكم بالطقس مرة واحدة أم تتحكم بالنهار/الليل مرة؟',A:'الطقس',B:'النهار/الليل'},
+      {cat:'adv',q:'تملك سيارة تطير أم قارب فخم؟',A:'سيارة تطير',B:'قارب فخم'},
+      {cat:'fun',q:'تستطيع إطفاء شاشات العالم ساعة أم جعل يوم خالٍ من الكذب؟',A:'إطفاء الشاشات',B:'يوم بلا كذب'},
+      {cat:'deep',q:'لا تستطيع الكذب أبداً لكن الناس يحبونك أم تكذب بمهارة والناس لا يثقون؟',A:'صادق ومحبوب',B:'كاذب لكن مشهور'},
+      {cat:'rom',q:'تحب أحداً لكنه بعيد أم يكون قريب لكنه غير مناسب؟',A:'بعيد ومحبوب',B:'قريب وغير مناسب'}
+    ];
+
+    let pool = [...questions];
+    let index = -1;
+    let used = [];
+
+    const questionText = document.getElementById('questionText');
+    const choiceA = document.getElementById('choiceA');
+    const choiceB = document.getElementById('choiceB');
+    const nextBtn = document.getElementById('nextBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const currentIndex = document.getElementById('currentIndex');
+    const totalCount = document.getElementById('totalCount');
+    const categorySelect = document.getElementById('categorySelect');
+    const shuffleToggle = document.getElementById('shuffleToggle');
+
+    function updateTotals(){
+      totalCount.textContent = pool.length;
+    }
+
+    function loadPool(){
+      const cat = categorySelect.value;
+      pool = questions.filter(q => cat==='all' ? true : q.cat===cat);
+      if(shuffleToggle.checked) pool = shuffle(pool);
+      used = [];
+      index = -1;
+      updateTotals();
+    }
+
+    function shuffle(a){
+      for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+      return a;
+    }
+
+    function showQuestion(i){
+      if(!pool.length){questionText.textContent='لا توجد أسئلة في هذه الفئة.';choiceA.textContent='A —';choiceB.textContent='B —';currentIndex.textContent=0;return}
+      const item = pool[i];
+      questionText.textContent = item.q;
+      choiceA.innerHTML = '<strong>A</strong> — ' + item.A;
+      choiceB.innerHTML = '<strong>B</strong> — ' + item.B;
+      currentIndex.textContent = i+1;
+      choiceA.classList.remove('active');choiceB.classList.remove('active');
+    }
+
+    choiceA.addEventListener('click', ()=>{choiceA.classList.add('active');choiceB.classList.remove('active')});
+    choiceB.addEventListener('click', ()=>{choiceB.classList.add('active');choiceA.classList.remove('active')});
+
+    nextBtn.addEventListener('click', ()=>{
+      if(pool.length===0) return;
+      index++;
+      if(index>=pool.length) {
+        alert('وصلت لنهاية الأسئلة — اضغط إعادة لتبدأ من جديد.');
+        index = pool.length-1;
+        return;
+      }
+      showQuestion(index);
+    });
+
+    resetBtn.addEventListener('click', ()=>{loadPool();if(pool.length)showQuestion(0)});
+    categorySelect.addEventListener('change', ()=>{loadPool();if(pool.length)showQuestion(0)});
+    shuffleToggle.addEventListener('change', ()=>{loadPool();if(pool.length)showQuestion(0)});
+
+    // init
+    loadPool();totalCount.textContent = pool.length;
+
+    // PWA service worker registration
+    if('serviceWorker' in navigator){
+      window.addEventListener('load',()=>{
+        navigator.serviceWorker.register('sw.js').catch(err=>console.log('SW fail',err));
+      });
+    }
+  </script></body>
+</html>
